@@ -517,6 +517,8 @@ footer b{color:var(--ink-2); font-weight:500}
     <b>Datos reales de la API de Meta.</b> Una carga automática por día deja el histórico completo; este tablero sólo lo lee.
     Histórico cargado: <b id="cobertura">—</b>.
     <br>
+    <b>Alcance sumado.</b> Meta informa el alcance como personas únicas y sólo día por día. Para un período de varios días este tablero suma los días, así que quien vio contenido en tres días distintos cuenta tres veces. Por eso el número es más alto que el que muestra Business Suite para el mismo mes, que son personas únicas. El gráfico de alcance diario y el período de un solo día sí son personas únicas.
+    <br>
     <b>Lo que Meta no da.</b> Facebook dejó de informar alcance, tanto de la página como de cada publicación: donde Instagram muestra alcance, Facebook muestra visualizaciones, y nunca se suman como si fueran lo mismo.
     El día en curso siempre es parcial: Meta lo sigue reprocesando durante las horas siguientes.
     Las compras y el ROAS dependen de que la campaña esté optimizada a conversión y el píxel atribuya; una campaña de reconocimiento informa cero y eso no es un error de medición.
@@ -827,6 +829,16 @@ function adSum(ad, metric, r){
    es visualizaciones. Nunca se suman las dos cosas como si fueran una.      */
 const tieneRed   = nk => brands().some(b => b.has[nk]);
 const hayAlcance = () => state.net !== 'fb' && tieneRed('ig');   // Ambas = el alcance es el de Instagram
+
+/* El alcance que informa Meta es de PERSONAS ÚNICAS, y sólo por día.
+   Para un período de varios días acá se suman los días, y eso cuenta varias
+   veces a quien vio contenido en más de un día: no es el alcance del período,
+   es la suma de los alcances diarios. El número de Business Suite para un mes
+   es bastante más chico por eso. Mientras no pidamos el deduplicado por rango
+   a la API, el cuadro lo dice con todas las letras.                        */
+const unDia = () => { const r = range(); return r.a === r.b; };
+const diasDelPeriodo = () => { const r = range(); return r.b - r.a + 1; };
+const rotuloAlcance = () => unDia() ? 'Alcance' : 'Alcance sumado';
 const metricaEje = () => hayAlcance() ? 'reach' : 'views';
 const nombreEje  = () => hayAlcance() ? 'Alcance diario' : 'Visualizaciones diarias';
 
@@ -1078,20 +1090,23 @@ function renderOrganico(){
 
   const host = document.getElementById('org-tiles'); host.innerHTML = '';
   host.appendChild(hayAlcance()
-    ? tile({k:'Alcance', v:compact(reach), now:reach, prev:pr&&p('reach'), yoy:yr&&yy('reach'),
-            sub:n0(reach)+' personas' + (state.net==='all' ? ' · Instagram' : ''), spark:spk('reach'), col})
+    ? tile({k:rotuloAlcance(), v:compact(reach), now:reach, prev:pr&&p('reach'), yoy:yr&&yy('reach'),
+            sub: unDia()
+              ? n0(reach)+' personas' + (state.net==='all' ? ' · Instagram' : '')
+              : 'suma de ' + diasDelPeriodo() + ' días, no personas únicas',
+            spark:spk('reach'), col})
     : tile({k:'Alcance', v:'—', spark:[], col,
             nocmp: soloFB ? 'Meta dio de baja la métrica' : 'sin cuenta conectada',
             sub: soloFB ? 'Facebook ya no informa alcance' : 'sin Instagram conectado'}));
   host.appendChild(tile({k:'Visualizaciones', v:compact(views), now:views, prev:pr&&p('views'), yoy:yr&&yy('views'),
-    sub: hayAlcance() ? dec(views/Math.max(reach,1),1)+' × alcance' : n0(views)+' reproducciones',
+    sub: hayAlcance() ? dec(views/Math.max(reach,1),1)+' × '+rotuloAlcance().toLowerCase() : n0(views)+' reproducciones',
     spark:spk('views'), col}));
   host.appendChild(tile({k:'Seguidores netos', v:(neto>=0?'+':'−')+n0(Math.abs(neto)), now:neto,
     prev:pr&&(p('follows')-p('unfollows')), yoy:yr&&(yy('follows')-yy('unfollows')), spark:spk('follows'), col,
     extra:`<div class="brk"><span class="g"><b>+${n0(m('follows'))}</b><em>ganados</em></span>
       <span class="p"><b>−${n0(m('unfollows'))}</b><em>perdidos</em></span></div>`}));
   host.appendChild(tile({k:'Interacciones', v:compact(inter), now:inter, prev:pr&&p('interactions'), yoy:yr&&yy('interactions'),
-    sub:pct(inter/Math.max(base,1)) + (hayAlcance()?' del alcance':' de las visualizaciones'),
+    sub:pct(inter/Math.max(base,1)) + (hayAlcance()?(' del '+rotuloAlcance().toLowerCase()):' de las visualizaciones'),
     spark:spk('interactions'), col}));
   host.appendChild(tile({k: soloFB ? 'Visitas a la página' : 'Visitas al perfil', v:compact(vis), now:vis,
     prev:pr&&p('profile_views'), yoy:yr&&yy('profile_views'),
@@ -1111,7 +1126,7 @@ function renderOrganico(){
   legend(document.getElementById('org-legend'), series);
 
   document.getElementById('org-bars-note').textContent =
-    'Suma del período. El número gris es la tasa sobre ' + (hayAlcance()?'el alcance.':'las visualizaciones.');
+    'Suma del período. El número gris es la tasa sobre ' + (hayAlcance()?('el '+rotuloAlcance().toLowerCase()+'.'):'las visualizaciones.');
   barList(document.getElementById('org-bars'), B.map(b=>{
     // cada marca se mide contra su propia base: alcance si tiene Instagram, si no visualizaciones
     const conAlcance = state.net !== 'fb' && b.has.ig;
@@ -1149,7 +1164,7 @@ function renderOrganico(){
       <div class="nethead"><span class="netmark">${mark}</span><span class="netname">${nm}</span>
         <span class="netshare">${pct(share,0)} de las visualizaciones</span></div>
       <div class="netstats">
-        <div class="ns"><span class="k">Alcance</span><span class="v">${esFB
+        <div class="ns"><span class="k">${rotuloAlcance()}</span><span class="v">${esFB
           ? '<span style="color:var(--ink-3);font-weight:400">sin dato en la API</span>'
           : compact(g('reach')) + ' ' + deltaHTML(g('reach'), pr&&gp('reach'))}</span></div>
         <div class="ns"><span class="k">Visualizaciones</span><span class="v">${compact(vw)} ${deltaHTML(vw, pr&&gp('views'))}</span></div>
@@ -1187,7 +1202,7 @@ function renderOrganico(){
   }
   const totNet = tot.gan - tot.per;
   document.getElementById('org-table').innerHTML =
-    `<thead><tr><th>Marca</th><th style="text-align:left">Red</th><th>Alcance</th><th>Visualizaciones</th>
+    `<thead><tr><th>Marca</th><th style="text-align:left">Red</th><th>${rotuloAlcance()}</th><th>Visualizaciones</th>
       <th>Interacciones</th><th>Tasa int.</th><th>Seg. ganados</th><th>Seg. perdidos</th><th>Seg. netos</th><th>Visitas al perfil</th></tr></thead>
      <tbody>${rows}<tr class="tot"><td>Total</td><td></td><td>${n0(tot.reach)}</td><td>${n0(tot.views)}</td>
       <td>${n0(tot.interactions)}</td><td>${pct(tot.interactions/Math.max(tot.reach,1))}</td>
