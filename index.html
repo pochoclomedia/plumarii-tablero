@@ -465,9 +465,9 @@ footer b{color:var(--ink-2); font-weight:500}
       <div class="card">
         <h3 class="sec">Retorno por marca</h3>
         <p class="sec-note" id="paid-bars-note">—</p>
-        <h4 class="subsec">ROAS · objetivo 3,00</h4>
+        <h4 class="subsec">Inversión por marca</h4>
         <div class="blist" id="paid-roas"></div>
-        <h4 class="subsec">Costo por compra</h4>
+        <h4 class="subsec">CTR por marca</h4>
         <div class="blist" id="paid-cpa"></div>
       </div>
     </div>
@@ -521,11 +521,10 @@ footer b{color:var(--ink-2); font-weight:500}
     <b>Datos reales de la API de Meta.</b> Una carga automática por día deja el histórico completo; este tablero sólo lo lee.
     Histórico cargado: <b id="cobertura">—</b>.
     <br>
-    <b>Alcance sumado.</b> Meta informa el alcance como personas únicas y sólo día por día. Para un período de varios días este tablero suma los días, así que quien vio contenido en tres días distintos cuenta tres veces. Por eso el número es más alto que el que muestra Business Suite para el mismo mes, que son personas únicas. El gráfico de alcance diario y el período de un solo día sí son personas únicas.
+    <b>Alcance.</b> Son personas distintas, no veces que se mostró algo. Para cada período el tablero le pide a Meta el rango entero, igual que Business Suite, así quien vio contenido en varios días cuenta una sola vez. Meta no acepta rangos de más de 30 días: en los meses de 31 se miden los últimos 30 y la tarjeta lo aclara. Con varias marcas juntas los alcances se suman, porque Meta no deduplica entre cuentas distintas.
     <br>
     <b>Lo que Meta no da.</b> Facebook dejó de informar alcance, tanto de la página como de cada publicación: donde Instagram muestra alcance, Facebook muestra visualizaciones, y nunca se suman como si fueran lo mismo.
     El día en curso siempre es parcial: Meta lo sigue reprocesando durante las horas siguientes.
-    Las compras y el ROAS dependen de que la campaña esté optimizada a conversión y el píxel atribuya; una campaña de reconocimiento informa cero y eso no es un error de medición.
     Moneda: pesos argentinos.
   </footer>
 </div>
@@ -541,7 +540,7 @@ footer b{color:var(--ink-2); font-weight:500}
    ===================================================================== */
 const FUENTE = 'data.json';
 
-let DATES = [], N = 0, LAST = 0, IDX = {}, B = [], byId = {}, RAW = null;
+let DATES = [], N = 0, LAST = 0, IDX = {}, B = [], byId = {}, RAW = null, ALCANCE = null;
 let MONTHMAP = new Map(), YEARS = [], YEARMAP = new Map();
 let state = { brand:'all', net:'all', kind:'days', n:30, month:null, year:null };
 
@@ -677,6 +676,14 @@ addEventListener('drop', ev => {
   const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
   if(f) leerArchivo(f);
 });
+
+// El alcance real de cada período vive aparte, en alcance.json: son personas
+// únicas y sólo Meta las puede deduplicar, así que no se pueden sumar los días.
+// Si el archivo no está, el tablero sigue andando con la suma y lo aclara.
+fetch('alcance.json', {cache:'no-store'})
+  .then(r => r.ok ? r.json() : null)
+  .then(a => { ALCANCE = a; })
+  .catch(() => { ALCANCE = null; });
 
 fetch(FUENTE, {cache:'no-store'})
   .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -842,7 +849,28 @@ const hayAlcance = () => state.net !== 'fb' && tieneRed('ig');   // Ambas = el a
    a la API, el cuadro lo dice con todas las letras.                        */
 const unDia = () => { const r = range(); return r.a === r.b; };
 const diasDelPeriodo = () => { const r = range(); return r.b - r.a + 1; };
-const rotuloAlcance = () => unDia() ? 'Alcance' : 'Alcance sumado';
+/**
+ * El alcance real del período, pedido a Meta como un rango entero y por eso sin
+ * duplicar personas. Devuelve null si no hay dato para ese rango, y ahí el
+ * tablero cae a la suma de los días y lo dice.
+ * Con varias marcas se suman los alcances de cada una: Meta no sabe deduplicar
+ * entre cuentas distintas, así que quien sigue a dos marcas cuenta dos veces.
+ */
+function alcanceReal(rg, marcas){
+  if(!ALCANCE || !ALCANCE.rangos || !DATES[rg.a] || !DATES[rg.b]) return null;
+  const clave = DATES[rg.a] + '_' + DATES[rg.b];
+  const ms = (marcas || brands()).filter(b => b.has.ig);
+  if(!ms.length) return null;
+  let v = 0, parcial = false, medidos = 0, dias = 0;
+  for(const b of ms){
+    const reg = ALCANCE.rangos[b.id] && ALCANCE.rangos[b.id][clave];
+    if(!reg) return null;                 // si falta una marca, el total mentiría
+    v += reg.v || 0;
+    if(reg.parcial){ parcial = true; medidos = reg.medidos; dias = reg.dias; }
+  }
+  return { v, parcial, medidos, dias, marcas: ms.length };
+}
+const rotuloAlcance = () => (unDia() || alcanceReal(range())) ? 'Alcance' : 'Alcance sumado';
 const metricaEje = () => hayAlcance() ? 'reach' : 'views';
 const nombreEje  = () => hayAlcance() ? 'Alcance diario' : 'Visualizaciones diarias';
 
@@ -1050,10 +1078,9 @@ function renderFilters(){
     renderFilters(); render();
   };
   fy.appendChild(sel);
-  const full = el('button','pill','Año completo'); full.type = 'button';
-  full.setAttribute('aria-pressed', String(state.kind === 'year'));
-  full.onclick = () => { Object.assign(state, {kind:'year', month:null}); renderFilters(); render(); };
-  fy.appendChild(full);
+  // Sin "Año completo": Meta no acepta rangos de más de 30 días, así que el
+  // alcance de un año entero no se puede deduplicar y sería el único número del
+  // tablero que no es comparable con Business Suite. El tablero se mira mes a mes.
 
   const fm = document.getElementById('f-month'); fm.innerHTML = '';
   for(let m=0;m<12;m++){
@@ -1091,27 +1118,36 @@ function renderOrganico(){
   const neto = m('follows') - m('unfollows');
   const col = state.brand==='all' ? cssv('--ink-2') : color(byId[state.brand]);
   const spk = k => orgSeries(k, cr);
-  const base = hayAlcance() ? reach : views;                     // denominador de las tasas
 
   const host = document.getElementById('org-tiles'); host.innerHTML = '';
+  const real = alcanceReal(r), realPrev = pr && alcanceReal(pr), realYoy = yr && alcanceReal(yr);
+  const reachV = real ? real.v : reach;
+  const subAlcance = real
+    ? (real.parcial
+        ? n0(real.v)+' personas · '+real.medidos+' de '+real.dias+' días'
+        : n0(real.v)+' personas' + (state.net==='all' ? ' · Instagram' : ''))
+    : (unDia()
+        ? n0(reach)+' personas' + (state.net==='all' ? ' · Instagram' : '')
+        : 'suma de ' + diasDelPeriodo() + ' días, no personas únicas');
+
   host.appendChild(hayAlcance()
-    ? tile({k:rotuloAlcance(), v:compact(reach), now:reach, prev:pr&&p('reach'), yoy:yr&&yy('reach'),
-            sub: unDia()
-              ? n0(reach)+' personas' + (state.net==='all' ? ' · Instagram' : '')
-              : 'suma de ' + diasDelPeriodo() + ' días, no personas únicas',
+    ? tile({k:rotuloAlcance(), v:compact(reachV), now:reachV,
+            prev: pr && (realPrev ? realPrev.v : p('reach')),
+            yoy:  yr && (realYoy  ? realYoy.v  : yy('reach')),
+            sub: subAlcance,
             spark:spk('reach'), col})
     : tile({k:'Alcance', v:'—', spark:[], col,
             nocmp: soloFB ? 'Meta dio de baja la métrica' : 'sin cuenta conectada',
             sub: soloFB ? 'Facebook ya no informa alcance' : 'sin Instagram conectado'}));
   host.appendChild(tile({k:'Visualizaciones', v:compact(views), now:views, prev:pr&&p('views'), yoy:yr&&yy('views'),
-    sub: hayAlcance() ? dec(views/Math.max(reach,1),1)+' × '+rotuloAlcance().toLowerCase() : n0(views)+' reproducciones',
+    sub: hayAlcance() ? dec(views/Math.max(reachV,1),1)+' × '+rotuloAlcance().toLowerCase() : n0(views)+' reproducciones',
     spark:spk('views'), col}));
   host.appendChild(tile({k:'Seguidores netos', v:(neto>=0?'+':'−')+n0(Math.abs(neto)), now:neto,
     prev:pr&&(p('follows')-p('unfollows')), yoy:yr&&(yy('follows')-yy('unfollows')), spark:spk('follows'), col,
     extra:`<div class="brk"><span class="g"><b>+${n0(m('follows'))}</b><em>ganados</em></span>
       <span class="p"><b>−${n0(m('unfollows'))}</b><em>perdidos</em></span></div>`}));
   host.appendChild(tile({k:'Interacciones', v:compact(inter), now:inter, prev:pr&&p('interactions'), yoy:yr&&yy('interactions'),
-    sub:pct(inter/Math.max(base,1)) + (hayAlcance()?(' del '+rotuloAlcance().toLowerCase()):' de las visualizaciones'),
+    sub:pct(inter/Math.max(hayAlcance()?reachV:views,1)) + (hayAlcance()?(' del '+rotuloAlcance().toLowerCase()):' de las visualizaciones'),
     spark:spk('interactions'), col}));
   host.appendChild(tile({k: soloFB ? 'Visitas a la página' : 'Visitas al perfil', v:compact(vis), now:vis,
     prev:pr&&p('profile_views'), yoy:yr&&yy('profile_views'),
@@ -1264,13 +1300,13 @@ function renderPaid(){
     sub:'CPM '+money(sp/Math.max(im,1)*1000), spark:spk('impressions'), col}));
   host.appendChild(tile({k:'Clics', v:compact(cl), now:cl, prev:pr&&p('clicks'), yoy:yr&&yy('clicks'),
     sub:'CTR '+pct(cl/Math.max(im,1),2)+' · CPC '+money(sp/Math.max(cl,1)), spark:spk('clicks'), col}));
-  host.appendChild(tile({k:'Compras', v:n0(pu), now:pu, prev:pr&&p('purchases'), yoy:yr&&yy('purchases'),
-    sub: hayCompras ? 'CPA '+money(sp/pu) : 'ninguna campaña del período optimiza a compra',
-    spark:spk('purchases'), col}));
-  host.appendChild(tile({k:'ROAS', v: hayCompras ? dec(rv/Math.max(sp,1)) : '—', now:rv/Math.max(sp,1),
-    prev:pr&&(p('revenue')/Math.max(p('spend'),1)), yoy:yr&&(yy('revenue')/Math.max(yy('spend'),1)),
-    nocmp: hayCompras ? null : 'sin compras en el período',
-    sub: hayCompras ? moneyC(rv)+' de ingresos' : 'sin ingresos atribuidos', spark:spk('revenue'), col}));
+  const ctr = cl/Math.max(im,1), ctrP = pr && (p('clicks')/Math.max(p('impressions'),1));
+  host.appendChild(tile({k:'CTR', v:pct(ctr,2), now:ctr, prev:ctrP,
+    yoy: yr && (yy('clicks')/Math.max(yy('impressions'),1)),
+    sub:'clics sobre impresiones', spark:[], col}));
+  host.appendChild(tile({k:'Costo por clic', v:money(sp/Math.max(cl,1)), now:sp/Math.max(cl,1), inverse:true,
+    prev:pr&&(p('spend')/Math.max(p('clicks'),1)), yoy:yr&&(yy('spend')/Math.max(yy('clicks'),1)),
+    sub:'CPM '+money(sp/Math.max(im,1)*1000), spark:[], col}));
 
   const series = brands().map(b=>({n:b.name, c:color(b), v:paidSeries('spend', cr, [b])}));
   const markFrom = cr.a === r.a ? 0 : (r.a - cr.a);
@@ -1280,17 +1316,16 @@ function renderPaid(){
   lineChart(document.getElementById('paid-chart'), series, slice(DATES, cr), moneyC, money, markFrom);
   legend(document.getElementById('paid-legend'), series);
 
-  document.getElementById('paid-bars-note').textContent = hayCompras
-    ? 'La marca vertical en la barra es el objetivo del grupo.'
-    : 'Las campañas del período están optimizadas a reconocimiento y alcance, así que Meta no atribuye compras ni ingresos. Este bloque se llena cuando haya campañas de conversión.';
+  document.getElementById('paid-bars-note').textContent =
+    'Dónde se puso la plata en el período y qué tan bien respondió cada marca.';
   barList(document.getElementById('paid-roas'), B.map(b=>{
-    const s = paidSum('spend', r, [b]), v = paidSum('revenue', r, [b]);
-    return {n:b.name, c:color(b), v:v/Math.max(s,1), x:moneyC(s)};
-  }).sort((a,b)=>b.v-a.v), v=>dec(v), 3.0);
+    const s = paidSum('spend', r, [b]);
+    return {n:b.name, c:color(b), v:s, x:compact(paidSum('impressions', r, [b]))+' impres.'};
+  }).sort((a,b)=>b.v-a.v), v=>moneyC(v));
   barList(document.getElementById('paid-cpa'), B.map(b=>{
-    const s = paidSum('spend', r, [b]), q = paidSum('purchases', r, [b]);
-    return {n:b.name, c:color(b), v:q>=1 ? s/q : 0, x:q>=1 ? n0(q)+' compras' : 'sin compras'};
-  }).sort((a,b)=>a.v-b.v), v=>v?moneyC(v):'—');
+    const i = paidSum('impressions', r, [b]), c = paidSum('clicks', r, [b]);
+    return {n:b.name, c:color(b), v:i>=1 ? c/i : 0, x:n0(c)+' clics'};
+  }).sort((a,b)=>b.v-a.v), v=>pct(v,2));
 
   // ---- top 10 anuncios
   const ads = [];
@@ -1301,19 +1336,17 @@ function renderPaid(){
     ads.push({ad, b, spend:s, impressions:adSum(ad,'impressions',r), clicks:adSum(ad,'clicks',r),
               purchases:adSum(ad,'purchases',r), revenue:adSum(ad,'revenue',r), cp});
   }
-  ads.sort((x,y)=> hayCompras ? (y.purchases - x.purchases || y.revenue - x.revenue) : (y.spend - x.spend));
+  ads.sort((x,y)=> y.spend - x.spend);
   const top = ads.slice(0,10);
   document.getElementById('ads-title').textContent =
     'Top 10 anuncios' + (state.brand==='all' ? ' del grupo' : ' de ' + byId[state.brand].name);
   document.getElementById('ads-note').textContent =
-    'Creatividades con entrega en el período, ordenadas por ' + (hayCompras ? 'compras.' : 'inversión, porque no hay compras atribuidas en el período.') +
+    'Creatividades con entrega en el período, ordenadas por inversión.' +
     (ads.length && ads.length<10 ? ` Hay ${ads.length} anuncios con entrega.` : '');
   document.getElementById('paid-ads').innerHTML = top.length
     ? top.map((a,i)=>postCard(i+1, color(a.b), objLabel(a.cp.objective), null, a.ad.name,
         `${a.b.name} · ${a.cp.name}`,
-        hayCompras
-          ? [[n0(a.purchases),'compras'],[dec(a.revenue/Math.max(a.spend,1)),'ROAS'],[moneyC(a.spend),'invertido']]
-          : [[moneyC(a.spend),'invertido'],[compact(a.impressions),'impres.'],[pct(a.clicks/Math.max(a.impressions,1),2),'CTR']]
+        [[moneyC(a.spend),'invertido'],[compact(a.impressions),'impres.'],[pct(a.clicks/Math.max(a.impressions,1),2),'CTR']]
         )).join('')
     : `<p class="empty">No hubo anuncios con entrega en este período.</p>`;
 
@@ -1328,28 +1361,27 @@ function renderPaid(){
   }
   cs.sort((x,y)=>y.spend-x.spend);
   const rowsC = cs.map(c=>{
-    const roas = c.revenue/Math.max(c.spend,1);
     const activa = c.cp.status === 'ACTIVE';
     const badge = !activa ? `<span class="badge off">${estLabel(c.cp.status)}</span>`
-      : (c.purchases >= 1 && roas < 1.5 ? '<span class="badge bad">revisar</span>' : '<span class="badge ok">activa</span>');
+      : '<span class="badge ok">activa</span>';
     return `<tr><td><div class="nm"><i class="dot" style="background:${color(c.b)}"></i>${esc(c.cp.name)}</div></td>
       <td style="text-align:left;color:var(--ink-2)">${objLabel(c.cp.objective)}</td>
       <td>${money(c.spend)}</td><td>${n0(c.impressions)}</td><td>${n0(c.clicks)}</td>
-      <td>${pct(c.clicks/Math.max(c.impressions,1),2)}</td><td>${n0(c.purchases)}</td>
-      <td>${c.purchases>=1?money(c.spend/c.purchases):'—'}</td>
-      <td style="font-weight:600;color:${c.purchases<1?'var(--ink-3)':(roas>=3?'var(--good-ink)':(roas<1.5?'var(--crit-ink)':'var(--ink)'))}">${c.purchases>=1?dec(roas):'—'}</td>
+      <td>${pct(c.clicks/Math.max(c.impressions,1),2)}</td>
+      <td>${money(c.spend/Math.max(c.clicks,1))}</td>
+      <td>${money(c.spend/Math.max(c.impressions,1)*1000)}</td>
       <td>${badge}</td></tr>`;
   }).join('');
   const T = k => cs.reduce((s,c)=>s+c[k], 0);
   document.getElementById('paid-table').innerHTML =
     `<thead><tr><th>Campaña</th><th style="text-align:left">Objetivo</th><th>Inversión</th><th>Impresiones</th>
-      <th>Clics</th><th>CTR</th><th>Compras</th><th>CPA</th><th>ROAS</th><th>Estado</th></tr></thead>
-     <tbody>${rowsC || '<tr><td colspan="10" style="text-align:left;color:var(--ink-3)">Sin campañas con entrega en el período.</td></tr>'}
+      <th>Clics</th><th>CTR</th><th>CPC</th><th>CPM</th><th>Estado</th></tr></thead>
+     <tbody>${rowsC || '<tr><td colspan="9" style="text-align:left;color:var(--ink-3)">Sin campañas con entrega en el período.</td></tr>'}
      ${cs.length?`<tr class="tot"><td>Total ${cs.length} ${cs.length===1?'campaña':'campañas'}</td><td></td><td>${money(T('spend'))}</td>
       <td>${n0(T('impressions'))}</td><td>${n0(T('clicks'))}</td>
-      <td>${pct(T('clicks')/Math.max(T('impressions'),1),2)}</td><td>${n0(T('purchases'))}</td>
-      <td>${T('purchases')>=1?money(T('spend')/T('purchases')):'—'}</td>
-      <td>${T('purchases')>=1?dec(T('revenue')/Math.max(T('spend'),1)):'—'}</td><td></td></tr>`:''}</tbody>`;
+      <td>${pct(T('clicks')/Math.max(T('impressions'),1),2)}</td>
+      <td>${money(T('spend')/Math.max(T('clicks'),1))}</td>
+      <td>${money(T('spend')/Math.max(T('impressions'),1)*1000)}</td><td></td></tr>`:''}</tbody>`;
 }
 
 function render(){ if(!RAW) return; renderOrganico(); renderPaid(); }
