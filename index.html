@@ -883,12 +883,14 @@ function alcancePaid(rg, marcas){
   if(!PAID || !PAID.rangos || !DATES[rg.a] || !DATES[rg.b]) return null;
   const clave = DATES[rg.a] + '_' + DATES[rg.b];
   const ms = marcas || brands();
-  let v = 0, hubo = false;
+  let reach = 0, imp = 0, hubo = false;
   for(const b of ms){
     const reg = PAID.rangos[b.id] && PAID.rangos[b.id][clave];
-    if(reg){ v += reg.reach || 0; hubo = true; }
+    if(reg){ reach += reg.reach || 0; imp += reg.impressions || 0; hubo = true; }
   }
-  return hubo ? v : null;
+  // La frecuencia se saca de estos dos y no de las impresiones del data.json:
+  // tienen que venir del mismo pedido para que el cociente signifique algo.
+  return hubo ? { reach, imp, frec: reach ? imp/reach : 0 } : null;
 }
 const metricaEje = () => hayAlcance() ? 'reach' : 'views';
 const nombreEje  = () => hayAlcance() ? 'Alcance diario' : 'Visualizaciones diarias';
@@ -1320,16 +1322,20 @@ function renderPaid(){
   host.appendChild(tile({k:'Clics', v:compact(cl), now:cl, prev:pr&&p('clicks'), yoy:yr&&yy('clicks'),
     sub:'CPC '+money(sp/Math.max(cl,1)), spark:spk('clicks'), col}));
   const alc = alcancePaid(r), alcP = pr && alcancePaid(pr), alcY = yr && alcancePaid(yr);
-  host.appendChild(alc !== null
-    ? tile({k:'Alcance', v:compact(alc), now:alc, prev:alcP, yoy:alcY,
-            sub:n0(alc)+' personas · '+dec(im/Math.max(alc,1),1)+' impresiones c/u', spark:[], col})
+
+  host.appendChild(alc
+    ? tile({k:'Alcance', v:compact(alc.reach), now:alc.reach,
+            prev:alcP&&alcP.reach, yoy:alcY&&alcY.reach,
+            sub:n0(alc.reach)+' personas', spark:[], col})
     : tile({k:'Alcance', v:'—', spark:[], col, nocmp:'sin datos para este período',
             sub:'todavía no cargado'}));
 
-  const ctr = cl/Math.max(im,1), ctrP = pr && (p('clicks')/Math.max(p('impressions'),1));
-  host.appendChild(tile({k:'CTR', v:pct(ctr,2), now:ctr, prev:ctrP,
-    yoy: yr && (yy('clicks')/Math.max(yy('impressions'),1)),
-    sub:'clics sobre impresiones', spark:[], col}));
+  host.appendChild(alc
+    ? tile({k:'Frecuencia', v:dec(alc.frec,1), now:alc.frec,
+            prev:alcP&&alcP.frec, yoy:alcY&&alcY.frec,
+            sub:'veces que vio el anuncio cada persona', spark:[], col})
+    : tile({k:'Frecuencia', v:'—', spark:[], col, nocmp:'sin datos para este período',
+            sub:'necesita el alcance del período'}));
 
 
   const series = brands().map(b=>({n:b.name, c:color(b), v:paidSeries('spend', cr, [b])}));
