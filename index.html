@@ -463,7 +463,7 @@ footer b{color:var(--ink-2); font-weight:500}
         <div class="legend" id="paid-legend"></div>
       </div>
       <div class="card">
-        <h3 class="sec">Retorno por marca</h3>
+        <h3 class="sec">Inversión y respuesta por marca</h3>
         <p class="sec-note" id="paid-bars-note">—</p>
         <h4 class="subsec">Inversión por marca</h4>
         <div class="blist" id="paid-roas"></div>
@@ -1346,7 +1346,8 @@ function renderPaid(){
   document.getElementById('paid-ads').innerHTML = top.length
     ? top.map((a,i)=>postCard(i+1, color(a.b), objLabel(a.cp.objective), null, a.ad.name,
         `${a.b.name} · ${a.cp.name}`,
-        [[moneyC(a.spend),'invertido'],[compact(a.impressions),'impres.'],[pct(a.clicks/Math.max(a.impressions,1),2),'CTR']]
+        [[moneyC(a.spend),'invertido'],[compact(a.impressions),'impres.'],[pct(a.clicks/Math.max(a.impressions,1),2),'CTR']],
+        null, 'ad-' + a.ad.id
         )).join('')
     : `<p class="empty">No hubo anuncios con entrega en este período.</p>`;
 
