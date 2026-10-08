@@ -540,7 +540,7 @@ footer b{color:var(--ink-2); font-weight:500}
    ===================================================================== */
 const FUENTE = 'data.json';
 
-let DATES = [], N = 0, LAST = 0, IDX = {}, B = [], byId = {}, RAW = null, ALCANCE = null;
+let DATES = [], N = 0, LAST = 0, IDX = {}, B = [], byId = {}, RAW = null, ALCANCE = null, PAID = null;
 let MONTHMAP = new Map(), YEARS = [], YEARMAP = new Map();
 let state = { brand:'all', net:'all', kind:'days', n:30, month:null, year:null };
 
@@ -684,6 +684,12 @@ fetch('alcance.json', {cache:'no-store'})
   .then(r => r.ok ? r.json() : null)
   .then(a => { ALCANCE = a; })
   .catch(() => { ALCANCE = null; });
+
+// El alcance de los anuncios tampoco es sumable, y el data.json no lo guarda.
+fetch('paid.json', {cache:'no-store'})
+  .then(r => r.ok ? r.json() : null)
+  .then(a => { PAID = a; })
+  .catch(() => { PAID = null; });
 
 fetch(FUENTE, {cache:'no-store'})
   .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -871,6 +877,19 @@ function alcanceReal(rg, marcas){
   return { v, parcial, medidos, dias, marcas: ms.length };
 }
 const rotuloAlcance = () => (unDia() || alcanceReal(range())) ? 'Alcance' : 'Alcance sumado';
+
+/** Alcance de los anuncios del período, pedido a Meta como rango. */
+function alcancePaid(rg, marcas){
+  if(!PAID || !PAID.rangos || !DATES[rg.a] || !DATES[rg.b]) return null;
+  const clave = DATES[rg.a] + '_' + DATES[rg.b];
+  const ms = marcas || brands();
+  let v = 0, hubo = false;
+  for(const b of ms){
+    const reg = PAID.rangos[b.id] && PAID.rangos[b.id][clave];
+    if(reg){ v += reg.reach || 0; hubo = true; }
+  }
+  return hubo ? v : null;
+}
 const metricaEje = () => hayAlcance() ? 'reach' : 'views';
 const nombreEje  = () => hayAlcance() ? 'Alcance diario' : 'Visualizaciones diarias';
 
@@ -1299,14 +1318,19 @@ function renderPaid(){
   host.appendChild(tile({k:'Impresiones', v:compact(im), now:im, prev:pr&&p('impressions'), yoy:yr&&yy('impressions'),
     sub:'CPM '+money(sp/Math.max(im,1)*1000), spark:spk('impressions'), col}));
   host.appendChild(tile({k:'Clics', v:compact(cl), now:cl, prev:pr&&p('clicks'), yoy:yr&&yy('clicks'),
-    sub:'CTR '+pct(cl/Math.max(im,1),2)+' · CPC '+money(sp/Math.max(cl,1)), spark:spk('clicks'), col}));
+    sub:'CPC '+money(sp/Math.max(cl,1)), spark:spk('clicks'), col}));
+  const alc = alcancePaid(r), alcP = pr && alcancePaid(pr), alcY = yr && alcancePaid(yr);
+  host.appendChild(alc !== null
+    ? tile({k:'Alcance', v:compact(alc), now:alc, prev:alcP, yoy:alcY,
+            sub:n0(alc)+' personas · '+dec(im/Math.max(alc,1),1)+' impresiones c/u', spark:[], col})
+    : tile({k:'Alcance', v:'—', spark:[], col, nocmp:'sin datos para este período',
+            sub:'todavía no cargado'}));
+
   const ctr = cl/Math.max(im,1), ctrP = pr && (p('clicks')/Math.max(p('impressions'),1));
   host.appendChild(tile({k:'CTR', v:pct(ctr,2), now:ctr, prev:ctrP,
     yoy: yr && (yy('clicks')/Math.max(yy('impressions'),1)),
     sub:'clics sobre impresiones', spark:[], col}));
-  host.appendChild(tile({k:'Costo por clic', v:money(sp/Math.max(cl,1)), now:sp/Math.max(cl,1), inverse:true,
-    prev:pr&&(p('spend')/Math.max(p('clicks'),1)), yoy:yr&&(yy('spend')/Math.max(yy('clicks'),1)),
-    sub:'CPM '+money(sp/Math.max(im,1)*1000), spark:[], col}));
+
 
   const series = brands().map(b=>({n:b.name, c:color(b), v:paidSeries('spend', cr, [b])}));
   const markFrom = cr.a === r.a ? 0 : (r.a - cr.a);
