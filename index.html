@@ -350,7 +350,7 @@ footer b{color:var(--ink-2); font-weight:500}
         <h1>Tablero Meta</h1>
       </div>
       <div class="meta-right">
-        <span class="sync">Última carga <b id="syncstamp">—</b></span>
+        <span class="sync">Datos hasta <b id="cobertura">—</b> · última carga <b id="syncstamp">—</b></span>
         <button class="themebtn" id="themebtn" type="button" aria-label="Cambiar entre tema claro y oscuro"></button>
       </div>
     </div>
@@ -519,7 +519,6 @@ footer b{color:var(--ink-2); font-weight:500}
 
   <footer>
     <b>Datos reales de la API de Meta.</b> Una carga automática por día deja el histórico completo; este tablero sólo lo lee.
-    Histórico cargado: <b id="cobertura">—</b>.
     <br>
     <b>Alcance.</b> Son personas distintas, no veces que se mostró algo. Para cada período el tablero le pide a Meta el rango entero, igual que Business Suite, así quien vio contenido en varios días cuenta una sola vez. Meta no acepta rangos de más de 30 días: en los meses de 31 se miden los últimos 30 y la tarjeta lo aclara. Con varias marcas juntas los alcances se suman, porque Meta no deduplica entre cuentas distintas.
     <br>
@@ -642,8 +641,9 @@ function arrancar(raw){
   boot.hidden = true;
   document.getElementById('app').hidden = false;
   document.getElementById('syncstamp').textContent = sello(RAW.generated);
-  document.getElementById('cobertura').textContent =
-    fdateLong(DATES[0]) + ' – ' + fdateLong(DATES[LAST]) + ' · ' + N + ' días';
+  const cob = document.getElementById('cobertura');
+  cob.textContent = fdateLong(DATES[LAST]);
+  cob.title = 'Histórico cargado: ' + fdateLong(DATES[0]) + ' – ' + fdateLong(DATES[LAST]) + ' · ' + N + ' días';
   renderFilters();
   render();
 }
