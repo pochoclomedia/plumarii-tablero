@@ -235,6 +235,47 @@ h4.subsec:first-of-type{margin-top:0; padding-top:0; border-top:none}
 .sharebar i{display:block; border-radius:2px}
 .sharelab{display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; color:var(--ink-3); margin-top:6px; letter-spacing:.04em}
 
+/* ===== paid: grupos por objetivo ===== */
+.grp{margin-top:10px}
+.grphead{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding-bottom:13px; border-bottom:1px solid var(--line)}
+.obj{
+  font-family:var(--mono); font-size:9.5px; font-weight:500; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--chip-on-ink); background:var(--chip-on);
+  padding:4px 9px; border-radius:5px; white-space:nowrap;
+}
+.evt{font-size:14px; font-weight:500; letter-spacing:-.015em}
+.evt em{font-style:normal; color:var(--ink-3); font-weight:400; font-size:12.5px}
+.grpmeta{margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--ink-3);
+  letter-spacing:.03em; font-variant-numeric:tabular-nums; white-space:nowrap}
+.gstats{display:grid; grid-template-columns:1.3fr 1.3fr 1fr 1fr 1fr; margin-top:3px}
+.gs{padding:14px 16px 12px; border-right:1px solid var(--line); min-width:0}
+.gs:last-child{border-right:none}
+.gs .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.17em; text-transform:uppercase;
+  color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.gs .v{font-size:23px; font-weight:500; letter-spacing:-.035em; line-height:1.05; margin-top:5px;
+  font-variant-numeric:tabular-nums}
+.gs .u{font-size:11.5px; color:var(--ink-3); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.gs.hero{border-left:2px solid var(--ink-2); border-radius:2px 0 0 2px}
+.gs.hero .k{color:var(--ink-2)}
+.gs.hero .v{font-size:27px}
+.gchart{margin-top:4px; padding-top:13px; border-top:1px solid var(--line)}
+.gchart .lab{font-family:var(--mono); font-size:9.5px; letter-spacing:.17em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:4px}
+.gchart .why{font-size:11.5px; color:var(--ink-3); margin:0 0 9px; line-height:1.45}
+
+/* ===== paid: anuncios por campaña ===== */
+.adsgrp{margin-top:10px}
+.adshead{display:flex; align-items:center; gap:10px; flex-wrap:wrap; width:100%; text-align:left;
+  background:none; border:none; padding:0; color:inherit; font:inherit; cursor:pointer}
+.adshead .cn{font-size:13px; font-weight:500; letter-spacing:-.015em; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.adshead .cm{margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--ink-3);
+  letter-spacing:.04em; font-variant-numeric:tabular-nums; white-space:nowrap}
+.adshead .caret{font-family:var(--mono); font-size:10px; color:var(--ink-3); transition:transform .14s}
+.adsgrp[data-open="1"] .adshead .caret{transform:rotate(90deg)}
+.adsgrp:not([data-open="1"]) .posts{display:none}
+.adshead:hover .cn{color:var(--ink)}
+
 /* ===== tablas ===== */
 .tscroll{overflow-x:auto; margin:11px -17px 0; padding:0 17px}
 table{border-collapse:collapse; width:100%; min-width:660px; font-variant-numeric:tabular-nums}
@@ -256,6 +297,12 @@ td .nm .dot{width:7px; height:7px; border-radius:50%; flex:none}
 .badge.ok{color:var(--good-ink); background:color-mix(in srgb,var(--good) 16%,transparent)}
 .badge.off{color:var(--ink-3); background:var(--chip)}
 .badge.bad{color:var(--crit-ink); background:color-mix(in srgb,var(--crit) 16%,transparent)}
+td.res{font-weight:500; line-height:1.25}
+td.res em{
+  display:block; font-style:normal; font-weight:400;
+  font-family:var(--mono); font-size:8.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-3); margin-top:2px;
+}
 
 /* ===== ranking ===== */
 .posts{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-top:13px}
@@ -302,6 +349,9 @@ footer b{color:var(--ink-2); font-weight:500}
   .tiles{grid-template-columns:repeat(3,1fr)}
   .c-2,.c-32{grid-template-columns:1fr}
   .pipe{grid-template-columns:1fr 1fr; gap:16px 0}
+  .gstats{grid-template-columns:1fr 1fr}
+  .gs{border-right:none; border-bottom:1px solid var(--line)}
+  .gs.hero{border-left:2px solid var(--ink-2)}
 }
 @media (max-width:720px){
   .posts{grid-template-columns:repeat(3,1fr)}
@@ -455,34 +505,34 @@ footer b{color:var(--ink-2); font-weight:500}
 
     <div class="tiles" id="paid-tiles"></div>
 
-    <div class="cols c-32">
-      <div class="card">
-        <h3 class="sec">Inversión diaria</h3>
-        <p class="sec-note" id="paid-chart-note">—</p>
-        <div class="chart-wrap" id="paid-chart"></div>
-        <div class="legend" id="paid-legend"></div>
-      </div>
-      <div class="card">
-        <h3 class="sec">Inversión y respuesta por marca</h3>
-        <p class="sec-note" id="paid-bars-note">—</p>
-        <h4 class="subsec">Inversión por marca</h4>
-        <div class="blist" id="paid-roas"></div>
-        <h4 class="subsec">CTR por marca</h4>
-        <div class="blist" id="paid-cpa"></div>
-      </div>
+    <div class="card" style="margin-top:10px">
+      <h3 class="sec">Inversión diaria</h3>
+      <p class="sec-note" id="paid-chart-note">—</p>
+      <div class="chart-wrap" id="paid-chart"></div>
+      <div class="legend" id="paid-legend"></div>
     </div>
 
-    <div class="card" style="margin-top:10px">
-      <h3 class="sec" id="ads-title">Top 10 anuncios</h3>
-      <p class="sec-note" id="ads-note">—</p>
-      <div class="posts" id="paid-ads"></div>
+    <div class="band-head" style="margin-top:28px">
+      <span class="band-mark">Resultados</span>
+      <span class="band-title">Por objetivo de campaña</span>
+      <span class="band-sub" id="grupos-sub">—</span>
     </div>
+    <p class="sec-note" id="grupos-note" style="margin-top:-8px">—</p>
+    <div id="paid-grupos"></div>
 
     <div class="card" style="margin-top:10px">
       <h3 class="sec">Campañas</h3>
-      <p class="sec-note">Con entrega dentro del período, ordenadas por inversión.</p>
+      <p class="sec-note">Con entrega dentro del período, ordenadas por inversión. El resultado de cada una es el evento que le corresponde por su objetivo y su destino.</p>
       <div class="tscroll"><table id="paid-table"></table></div>
     </div>
+
+    <div class="band-head" style="margin-top:28px">
+      <span class="band-mark">Anuncios</span>
+      <span class="band-title">Top 10 de cada campaña</span>
+      <span class="band-sub" id="ads-sub">—</span>
+    </div>
+    <p class="sec-note" id="ads-note" style="margin-top:-8px">—</p>
+    <div id="paid-ads"></div>
   </section>
 
   <!-- ============ CÓMO SE ACTUALIZA ============ -->
@@ -539,12 +589,12 @@ footer b{color:var(--ink-2); font-weight:500}
    ===================================================================== */
 const FUENTE = 'data.json';
 
-let DATES = [], N = 0, LAST = 0, IDX = {}, B = [], byId = {}, RAW = null, ALCANCE = null, PAID = null;
+let DATES = [], N = 0, LAST = 0, IDX = {}, B = [], byId = {}, RAW = null, ALCANCE = null, PAID = null, PAIDC = null;
 let MONTHMAP = new Map(), YEARS = [], YEARMAP = new Map();
 let state = { brand:'all', net:'all', kind:'days', n:30, month:null, year:null };
 
 const CAMPOS_ORG = ['reach','views','interactions','follows','unfollows','profile_views','engaged'];
-const CAMPOS_PAID = ['spend','impressions','clicks','purchases','revenue'];
+const CAMPOS_PAID = ['spend','impressions','clicks','purchases','revenue','result'];
 
 function normalizar(raw){
   RAW = raw;
@@ -574,7 +624,8 @@ function normalizar(raw){
     for(const k of CAMPOS_PAID) o.paid[k] = largoFijo(b.paid && b.paid[k]);
 
     o.paid.campaigns = ((b.paid && b.paid.campaigns) || []).map(c => {
-      const cp = { id:c.id, name:c.name || '(sin nombre)', objective:c.objective || '', status:c.status || '' };
+      const cp = { id:c.id, name:c.name || '(sin nombre)', objective:c.objective || '', status:c.status || '',
+                   event:c.event || '', why:c.why || '', goal:c.goal || '', dest:c.dest || '' };
       const t = tramo(c);
       cp.s = t.s; cp.e = t.e;
       for(const k of CAMPOS_PAID) cp[k] = aEje(c[k], t.s);     // campañas: eje completo
@@ -690,6 +741,12 @@ fetch('paid.json', {cache:'no-store'})
   .then(r => r.ok ? r.json() : null)
   .then(a => { PAID = a; })
   .catch(() => { PAID = null; });
+
+// Y el de cada campaña por separado: es el resultado de las de reconocimiento.
+fetch('paid-campanas.json', {cache:'no-store'})
+  .then(r => r.ok ? r.json() : null)
+  .then(a => { PAIDC = a; })
+  .catch(() => { PAIDC = null; });
 
 fetch(FUENTE, {cache:'no-store'})
   .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -892,6 +949,45 @@ function alcancePaid(rg, marcas){
   // tienen que venir del mismo pedido para que el cociente signifique algo.
   return hubo ? { reach, imp, frec: reach ? imp/reach : 0 } : null;
 }
+
+/* ---------------------------------------------------------------------
+   El resultado de cada campaña según su objetivo y su destino.
+   El criterio vive en el Apps Script, que ya deja resuelto `event` en
+   data.json. Acá sólo están los rótulos y el caso aparte del alcance,
+   que al ser personas únicas no se puede sumar día por día.
+   --------------------------------------------------------------------- */
+const EVENTOS = {
+  reach:             { etiqueta:'Alcance',                     unidad:'personas alcanzadas',      costo:'CPM',                    dedup:true },
+  impressions:       { etiqueta:'Impresiones',                 unidad:'impresiones',              costo:'CPM',                    dedup:true },
+  link_click:        { etiqueta:'Clics en el enlace',          unidad:'clics en el enlace',       costo:'Costo por clic' },
+  landing_page_view: { etiqueta:'Vistas de la landing',        unidad:'vistas de la landing',     costo:'Costo por vista' },
+  profile_visit:     { etiqueta:'Visitas al perfil',           unidad:'visitas al perfil',        costo:'Costo por visita' },
+  post_engagement:   { etiqueta:'Interacciones',               unidad:'interacciones',            costo:'Costo por interacción' },
+  page_like:         { etiqueta:'Me gusta',                    unidad:'me gusta',                 costo:'Costo por me gusta' },
+  thruplay:          { etiqueta:'ThruPlays',                   unidad:'ThruPlays',                costo:'Costo por ThruPlay' },
+  video_view:        { etiqueta:'Reproducciones',              unidad:'reproducciones',           costo:'Costo por reproducción' },
+  purchase:          { etiqueta:'Compras',                     unidad:'compras',                  costo:'Costo por compra' },
+  lead:              { etiqueta:'Leads',                       unidad:'leads',                    costo:'Costo por lead' },
+  messaging:         { etiqueta:'Conversaciones',              unidad:'conversaciones iniciadas', costo:'Costo por conversación' },
+  whatsapp:          { etiqueta:'Conversaciones de WhatsApp',  unidad:'conversaciones',           costo:'Costo por conversación' },
+  messenger:         { etiqueta:'Conversaciones de Messenger', unidad:'conversaciones',           costo:'Costo por conversación' },
+  app_install:       { etiqueta:'Instalaciones',               unidad:'instalaciones',            costo:'Costo por instalación' },
+  conversion:        { etiqueta:'Conversiones',                unidad:'conversiones',             costo:'Costo por conversión' },
+};
+const evDef = k => EVENTOS[k] || { etiqueta:'Resultado', unidad:'resultados', costo:'Costo por resultado' };
+
+const POR_QUE = {
+  destino:  'el destino del conjunto manda sobre la meta de optimización',
+  meta:     'lo decide la meta de optimización del conjunto, más precisa que el objetivo',
+  objetivo: 'no hay destino ni meta que lo afinen, así que lo decide el objetivo',
+};
+
+/** Alcance deduplicado de una campaña en el rango que está en pantalla. */
+function alcanceCampana(campId, rg){
+  if(!PAIDC || !PAIDC.rangos || !DATES[rg.a] || !DATES[rg.b]) return null;
+  const reg = PAIDC.rangos[DATES[rg.a] + '_' + DATES[rg.b]];
+  return (reg && reg[campId]) || null;
+}
 const metricaEje = () => hayAlcance() ? 'reach' : 'views';
 const nombreEje  = () => hayAlcance() ? 'Alcance diario' : 'Visualizaciones diarias';
 
@@ -967,11 +1063,12 @@ function barList(host, rows, fmt, refValue){
 }
 const legend = (host, series) => host.innerHTML = series.map(s=>`<span class="lg"><i class="dot" style="background:${s.c}"></i>${s.n}</span>`).join('');
 
-function lineChart(host, series, dates, fmtY, fmtTip, markFrom){
+function lineChart(host, series, dates, fmtY, fmtTip, markFrom, alto){
   host.innerHTML = '';
   const W = Math.max(300, host.clientWidth || 640);
-  const narrow = W < 520, H = narrow ? 190 : 236;
-  const mL = narrow ? 46 : 52, mR = narrow ? 12 : 88, mT = 10, mB = 26;
+  const narrow = W < 520, H = alto || (narrow ? 190 : 236);
+  const sola = series.length === 1;   // con una sola línea el rótulo lateral sobra
+  const mL = narrow ? 46 : 52, mR = (narrow || sola) ? 14 : 88, mT = 10, mB = 26;
   const iw = W - mL - mR, ih = H - mT - mB;
   const mx = Math.max(...series.flatMap(s=>s.v), 1) * 1.08;
   const x = i => mL + (dates.length===1 ? iw/2 : i/(dates.length-1)*iw);
@@ -983,8 +1080,9 @@ function lineChart(host, series, dates, fmtY, fmtTip, markFrom){
   const gridC=cssv('--grid'), axisC=cssv('--axis'), muted=cssv('--ink-3'), ink2=cssv('--ink-2');
   const MONO = 'Geist Mono, ui-monospace, monospace', SANS = 'Geist, system-ui, sans-serif';
 
-  for(let t=0;t<=4;t++){
-    const v = mx*t/4, yy = y(v);
+  const TK = H < 170 ? 2 : 4;
+  for(let t=0;t<=TK;t++){
+    const v = mx*t/TK, yy = y(v);
     svg.appendChild(mk('line',{x1:mL,x2:mL+iw,y1:yy,y2:yy,stroke:t===0?axisC:gridC,'stroke-width':1}));
     const lb = mk('text',{x:mL-8,y:yy+3.5,'text-anchor':'end',fill:muted,'font-family':MONO,'font-size':9.5});
     lb.textContent = t===0 ? '0' : fmtY(v);
@@ -1007,7 +1105,7 @@ function lineChart(host, series, dates, fmtY, fmtTip, markFrom){
     const d = s.v.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
     svg.appendChild(mk('path',{d, fill:'none', stroke:s.c, 'stroke-width':2, 'stroke-linejoin':'round', 'stroke-linecap':'round'}));
   }
-  if(!narrow && dates.length > 1){
+  if(!narrow && !sola && dates.length > 1){
     const labs = series.map(s=>({s, y0:y(s.v[s.v.length-1]), y:y(s.v[s.v.length-1])})).sort((a,b)=>a.y-b.y);
     for(let i=1;i<labs.length;i++) if(labs[i].y - labs[i-1].y < 13) labs[i].y = labs[i-1].y + 13;
     const over = labs.length ? labs[labs.length-1].y - (mT+ih) : 0;
@@ -1050,10 +1148,10 @@ const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&
 const postCard = (rank, col, fmt, netLabel, title, sub, metrics, href, img) => `<article class="post">
   <div class="thumb" style="background:linear-gradient(148deg, ${col} 0%, color-mix(in srgb, ${col} 38%, #0c0c0e) 100%)">
     ${img?`<img class="ph" src="img/${esc(img)}.jpg" alt="" loading="lazy" onerror="this.remove()">`:''}
-    <span class="rank">${rank}</span><span class="fmt">${esc(fmt)}</span>${netLabel?`<span class="net">${netLabel}</span>`:''}
+    <span class="rank">${rank}</span>${fmt?`<span class="fmt">${esc(fmt)}</span>`:''}${netLabel?`<span class="net">${netLabel}</span>`:''}
   </div>
   <div class="pt">${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(title)}</a>` : esc(title)}</div>
-  <div class="pd">${esc(sub)}</div>
+  ${sub?`<div class="pd">${esc(sub)}</div>`:'<div style="height:4px"></div>'}
   <div class="pm">${metrics.map(m=>`<span><b>${m[0]}</b>${m[1]}</span>`).join('')}</div>
 </article>`;
 
@@ -1309,11 +1407,11 @@ function renderPaid(){
   document.getElementById('paid-sub').innerHTML = periodSub() + (isPartial() ? ' &nbsp;<span class="partial">parcial</span>' : '');
 
   const m = k => paidSum(k, r), p = k => paidSum(k, pr), yy = k => paidSum(k, yr);
-  const sp=m('spend'), im=m('impressions'), cl=m('clicks'), pu=m('purchases'), rv=m('revenue');
+  const sp=m('spend'), im=m('impressions'), cl=m('clicks');
   const col = state.brand==='all' ? cssv('--ink-2') : color(byId[state.brand]);
   const spk = k => paidSeries(k, cr);
-  const hayCompras = pu >= 1;
 
+  /* ---------- 1. contexto: lo único que se puede sumar siempre ---------- */
   const host = document.getElementById('paid-tiles'); host.innerHTML = '';
   host.appendChild(tile({k:'Inversión', v:moneyC(sp), now:sp, prev:pr&&p('spend'), yoy:yr&&yy('spend'),
     sub:money(sp), spark:spk('spend'), col}));
@@ -1321,98 +1419,233 @@ function renderPaid(){
     sub:'CPM '+money(sp/Math.max(im,1)*1000), spark:spk('impressions'), col}));
   host.appendChild(tile({k:'Clics', v:compact(cl), now:cl, prev:pr&&p('clicks'), yoy:yr&&yy('clicks'),
     sub:'CPC '+money(sp/Math.max(cl,1)), spark:spk('clicks'), col}));
+
   const alc = alcancePaid(r), alcP = pr && alcancePaid(pr), alcY = yr && alcancePaid(yr);
-
   host.appendChild(alc
-    ? tile({k:'Alcance', v:compact(alc.reach), now:alc.reach,
-            prev:alcP&&alcP.reach, yoy:alcY&&alcY.reach,
+    ? tile({k:'Alcance', v:compact(alc.reach), now:alc.reach, prev:alcP&&alcP.reach, yoy:alcY&&alcY.reach,
             sub:n0(alc.reach)+' personas', spark:[], col})
-    : tile({k:'Alcance', v:'—', spark:[], col, nocmp:'sin datos para este período',
-            sub:'todavía no cargado'}));
-
+    : tile({k:'Alcance', v:'—', spark:[], col, nocmp:'sin datos para este período', sub:'todavía no cargado'}));
   host.appendChild(alc
-    ? tile({k:'Frecuencia', v:dec(alc.frec,1), now:alc.frec,
-            prev:alcP&&alcP.frec, yoy:alcY&&alcY.frec,
+    ? tile({k:'Frecuencia', v:dec(alc.frec,1), now:alc.frec, prev:alcP&&alcP.frec, yoy:alcY&&alcY.frec,
             sub:'veces que vio el anuncio cada persona', spark:[], col})
-    : tile({k:'Frecuencia', v:'—', spark:[], col, nocmp:'sin datos para este período',
-            sub:'necesita el alcance del período'}));
+    : tile({k:'Frecuencia', v:'—', spark:[], col, nocmp:'sin datos para este período', sub:'necesita el alcance del período'}));
 
-
+  /* ---------- 2. inversión diaria ---------- */
   const series = brands().map(b=>({n:b.name, c:color(b), v:paidSeries('spend', cr, [b])}));
   const markFrom = cr.a === r.a ? 0 : (r.a - cr.a);
   document.getElementById('paid-chart-note').textContent =
     (markFrom ? 'Los últimos 14 días para dar contexto; el período elegido es el tramo sin sombrear. '
-              : (state.brand==='all' ? 'Una línea por marca. ' : '')) + 'Inversión diaria en pesos.';
+              : (state.brand==='all' ? 'Una línea por marca. ' : '')) +
+    'Inversión diaria en pesos. Pasá el cursor para ver el día.';
   lineChart(document.getElementById('paid-chart'), series, slice(DATES, cr), moneyC, money, markFrom);
   legend(document.getElementById('paid-legend'), series);
 
-  document.getElementById('paid-bars-note').textContent =
-    'Dónde se puso la plata en el período y qué tan bien respondió cada marca.';
-  barList(document.getElementById('paid-roas'), B.map(b=>{
-    const s = paidSum('spend', r, [b]);
-    return {n:b.name, c:color(b), v:s, x:compact(paidSum('impressions', r, [b]))+' impres.'};
-  }).sort((a,b)=>b.v-a.v), v=>moneyC(v));
-  barList(document.getElementById('paid-cpa'), B.map(b=>{
-    const i = paidSum('impressions', r, [b]), c = paidSum('clicks', r, [b]);
-    return {n:b.name, c:color(b), v:i>=1 ? c/i : 0, x:n0(c)+' clics'};
-  }).sort((a,b)=>b.v-a.v), v=>pct(v,2));
-
-  // ---- top 10 anuncios
-  const ads = [];
-  for(const b of brands()) for(const cp of b.paid.campaigns) for(const ad of cp.ads){
-    if(ad.e < r.a || ad.s > r.b) continue;
-    const s = adSum(ad,'spend',r);
-    if(s < 1) continue;
-    ads.push({ad, b, spend:s, impressions:adSum(ad,'impressions',r), clicks:adSum(ad,'clicks',r),
-              purchases:adSum(ad,'purchases',r), revenue:adSum(ad,'revenue',r), cp});
-  }
-  ads.sort((x,y)=> y.spend - x.spend);
-  const top = ads.slice(0,10);
-  document.getElementById('ads-title').textContent =
-    'Top 10 anuncios' + (state.brand==='all' ? ' del grupo' : ' de ' + byId[state.brand].name);
-  document.getElementById('ads-note').textContent =
-    'Creatividades con entrega en el período, ordenadas por inversión.' +
-    (ads.length && ads.length<10 ? ` Hay ${ads.length} anuncios con entrega.` : '');
-  document.getElementById('paid-ads').innerHTML = top.length
-    ? top.map((a,i)=>postCard(i+1, color(a.b), objLabel(a.cp.objective), null, a.ad.name,
-        `${a.b.name} · ${a.cp.name}`,
-        [[moneyC(a.spend),'invertido'],[compact(a.impressions),'impres.'],[pct(a.clicks/Math.max(a.impressions,1),2),'CTR']],
-        null, 'ad-' + a.ad.id
-        )).join('')
-    : `<p class="empty">No hubo anuncios con entrega en este período.</p>`;
-
-  // ---- campañas
+  /* ---------- 3. las campañas del período, con su evento resuelto ---------- */
   const cs = [];
   for(const b of brands()) for(const cp of b.paid.campaigns){
     if(cp.e < r.a || cp.s > r.b) continue;
     const s = sumR(cp.spend, r);
     if(s < 1) continue;
-    cs.push({cp, b, spend:s, impressions:sumR(cp.impressions,r), clicks:sumR(cp.clicks,r),
-             purchases:sumR(cp.purchases,r), revenue:sumR(cp.revenue,r)});
+    const ev = cp.event || '';
+    const def = evDef(ev);
+    const ac = def.dedup ? alcanceCampana(cp.id, r) : null;
+    cs.push({
+      cp, b, ev, def,
+      spend: s,
+      impressions: sumR(cp.impressions, r),
+      clicks: sumR(cp.clicks, r),
+      serie: sumR(cp.result, r),
+      result: def.dedup ? (ac ? ac.reach : null) : sumR(cp.result, r),
+      falta: def.dedup && !ac,
+    });
   }
   cs.sort((x,y)=>y.spend-x.spend);
+
+  /* ---------- 4. un bloque por objetivo ---------- */
+  const orden = [], G = {};
+  for(const c of cs){
+    const k = c.ev || '(sin dato)';
+    if(!G[k]){ G[k] = {ev:c.ev, def:c.def, camps:[], spend:0, impressions:0, clicks:0,
+                       result:0, falta:false, objetivos:{}, razones:{}}; orden.push(k); }
+    const g = G[k];
+    g.camps.push(c);
+    g.spend += c.spend; g.impressions += c.impressions; g.clicks += c.clicks;
+    if(c.result == null) g.falta = true; else g.result += c.result;
+    g.objetivos[c.cp.objective] = (g.objetivos[c.cp.objective]||0) + 1;
+    if(c.cp.why) g.razones[c.cp.why] = (g.razones[c.cp.why]||0) + 1;
+  }
+  orden.sort((a,b)=>G[b].spend-G[a].spend);
+
+  const hostG = document.getElementById('paid-grupos');
+  hostG.innerHTML = '';
+  document.getElementById('grupos-sub').textContent =
+    orden.length ? orden.length + (orden.length===1 ? ' objetivo con entrega' : ' objetivos con entrega') : '—';
+  document.getElementById('grupos-note').textContent = orden.length > 1
+    ? 'Cada objetivo mide una cosa distinta, así que no hay un número único de resultado: sumarlos no significaría nada. Lo que sí se suma —inversión, impresiones, alcance y frecuencia— está arriba.'
+    : 'El resultado de cada campaña es el evento que le corresponde por su objetivo y su destino.';
+
+  if(!orden.length){
+    hostG.innerHTML = '<div class="card"><p class="empty" style="padding:4px 0">Ninguna campaña tuvo entrega en este período.</p></div>';
+  }
+
+  const porDibujar = [];
+  for(const k of orden){
+    const g = G[k];
+    const objs = Object.keys(g.objetivos);
+    const objTxt = objs.length === 1 ? objLabel(objs[0]) : 'Varios objetivos';
+    const cuantas = g.camps.length;
+    const parte = sp >= 1 ? g.spend/sp : 0;
+    const marcas = new Set(g.camps.map(c=>c.b.id));
+    const acento = marcas.size === 1 ? color(g.camps[0].b) : cssv('--ink-2');
+
+    // el costo: CPM para los eventos que no cuentan acciones, costo por resultado para el resto
+    const costo = g.def.dedup
+      ? money(g.spend/Math.max(g.impressions,1)*1000)
+      : (g.result >= 1 ? money(g.spend/g.result) : '—');
+
+    const valor = g.def.dedup
+      ? (g.falta ? '—' : compact(g.result))
+      : compact(g.result);
+
+    const card = el('div','card grp');
+    card.innerHTML = `
+      <div class="grphead">
+        <span class="obj">${esc(objTxt)}</span>
+        <span class="evt">${esc(g.def.etiqueta)} <em>· evento principal</em></span>
+        <span class="grpmeta">${cuantas} ${cuantas===1?'campaña':'campañas'} · ${moneyC(g.spend)} · ${pct(parte,0)} de la inversión</span>
+      </div>
+      <div class="gstats">
+        <div class="gs hero" style="border-left-color:${acento}">
+          <div class="k">Resultado</div>
+          <div class="v">${valor}</div>
+          <div class="u" title="${esc(g.def.unidad)}">${g.falta ? 'todavía no cargado' : esc(g.def.unidad)}</div>
+        </div>
+        <div class="gs">
+          <div class="k">${esc(g.def.costo)}</div>
+          <div class="v">${costo}</div>
+          <div class="u">${g.def.dedup ? 'costo por mil impresiones' : 'inversión dividida por el resultado'}</div>
+        </div>
+        <div class="gs">
+          <div class="k">Impresiones</div>
+          <div class="v">${compact(g.impressions)}</div>
+          <div class="u">${n0(g.impressions)}</div>
+        </div>
+        <div class="gs">
+          <div class="k">Clics</div>
+          <div class="v">${compact(g.clicks)}</div>
+          <div class="u">CTR ${pct(g.clicks/Math.max(g.impressions,1),2)}</div>
+        </div>
+        <div class="gs">
+          <div class="k">Inversión</div>
+          <div class="v">${moneyC(g.spend)}</div>
+          <div class="u">${money(g.spend/Math.max(r.b-r.a+1,1))} por día</div>
+        </div>
+      </div>
+      <div class="gchart">
+        <div class="lab">${g.def.dedup ? 'Impresiones por día' : esc(g.def.etiqueta) + ' por día'}</div>
+        <p class="why">${esc(explicarGrupo(g))}</p>
+        <div class="chart-wrap"></div>
+      </div>`;
+    hostG.appendChild(card);
+
+    // la serie diaria del grupo: el resultado, o las impresiones si el resultado no es sumable
+    const campo = g.def.dedup ? 'impressions' : 'result';
+    const v = new Array(cr.b - cr.a + 1).fill(0);
+    for(const c of g.camps) for(let i=cr.a;i<=cr.b;i++) v[i-cr.a] += (c.cp[campo] || [])[i] || 0;
+    porDibujar.push({ host: card.querySelector('.chart-wrap'),
+                      serie: [{n:g.def.dedup ? 'Impresiones' : g.def.etiqueta, c:acento, v}] });
+  }
+  // los gráficos se dibujan después de insertar las tarjetas, que miden su ancho del DOM
+  for(const d of porDibujar)
+    lineChart(d.host, d.serie, slice(DATES, cr), compact, n0, markFrom, 150);
+
+  /* ---------- 5. la tabla de campañas ---------- */
   const rowsC = cs.map(c=>{
-    const activa = c.cp.status === 'ACTIVE';
-    const badge = !activa ? `<span class="badge off">${estLabel(c.cp.status)}</span>`
-      : '<span class="badge ok">activa</span>';
+    const badge = c.cp.status === 'activa' ? '<span class="badge ok">activa</span>'
+                                           : `<span class="badge off">${estLabel(c.cp.status)}</span>`;
+    const res = c.result == null ? '—' : n0(c.result);
+    const cst = c.def.dedup ? money(c.spend/Math.max(c.impressions,1)*1000)
+                            : (c.result >= 1 ? money(c.spend/c.result) : '—');
     return `<tr><td><div class="nm"><i class="dot" style="background:${color(c.b)}"></i>${esc(c.cp.name)}</div></td>
       <td style="text-align:left;color:var(--ink-2)">${objLabel(c.cp.objective)}</td>
       <td>${money(c.spend)}</td><td>${n0(c.impressions)}</td><td>${n0(c.clicks)}</td>
       <td>${pct(c.clicks/Math.max(c.impressions,1),2)}</td>
-      <td>${money(c.spend/Math.max(c.clicks,1))}</td>
-      <td>${money(c.spend/Math.max(c.impressions,1)*1000)}</td>
+      <td class="res">${res}<em>${esc(c.def.etiqueta)}</em></td>
+      <td>${cst}</td>
       <td>${badge}</td></tr>`;
   }).join('');
-  const T = k => cs.reduce((s,c)=>s+c[k], 0);
+  const T = k => cs.reduce((s,c)=>s+(c[k]||0), 0);
   document.getElementById('paid-table').innerHTML =
     `<thead><tr><th>Campaña</th><th style="text-align:left">Objetivo</th><th>Inversión</th><th>Impresiones</th>
-      <th>Clics</th><th>CTR</th><th>CPC</th><th>CPM</th><th>Estado</th></tr></thead>
+      <th>Clics</th><th>CTR</th><th>Resultado</th><th>Costo/res.</th><th>Estado</th></tr></thead>
      <tbody>${rowsC || '<tr><td colspan="9" style="text-align:left;color:var(--ink-3)">Sin campañas con entrega en el período.</td></tr>'}
      ${cs.length?`<tr class="tot"><td>Total ${cs.length} ${cs.length===1?'campaña':'campañas'}</td><td></td><td>${money(T('spend'))}</td>
       <td>${n0(T('impressions'))}</td><td>${n0(T('clicks'))}</td>
       <td>${pct(T('clicks')/Math.max(T('impressions'),1),2)}</td>
-      <td>${money(T('spend')/Math.max(T('clicks'),1))}</td>
-      <td>${money(T('spend')/Math.max(T('impressions'),1)*1000)}</td><td></td></tr>`:''}</tbody>`;
+      <td style="color:var(--ink-3)">—</td><td style="color:var(--ink-3)">—</td><td></td></tr>`:''}</tbody>`;
+
+  /* ---------- 6. top 10 de anuncios, campaña por campaña ---------- */
+  const hostA = document.getElementById('paid-ads');
+  hostA.innerHTML = '';
+  const abiertoPorDefecto = cs.length <= 4;
+  document.getElementById('ads-sub').textContent =
+    cs.length ? cs.length + (cs.length===1 ? ' campaña' : ' campañas') : '—';
+  document.getElementById('ads-note').textContent = cs.length
+    ? 'Las creatividades de cada campaña, ordenadas por inversión, medidas con el resultado de su campaña.' +
+      (abiertoPorDefecto ? '' : ' Tocá una campaña para abrirla.')
+    : 'No hubo anuncios con entrega en este período.';
+
+  for(const c of cs){
+    const ads = c.cp.ads
+      .filter(a => a.e >= r.a && a.s <= r.b && adSum(a,'spend',r) >= 1)
+      .map(a => ({a, spend:adSum(a,'spend',r), impressions:adSum(a,'impressions',r),
+                  clicks:adSum(a,'clicks',r), result:adSum(a,'result',r)}))
+      .sort((x,y)=>y.spend-x.spend);
+    if(!ads.length) continue;
+    const top = ads.slice(0,10);
+
+    const card = el('div','card adsgrp');
+    card.dataset.open = abiertoPorDefecto ? '1' : '0';
+    card.innerHTML = `
+      <button class="adshead" type="button" aria-expanded="${abiertoPorDefecto}">
+        <span class="caret">▶</span>
+        <span class="obj">${esc(objLabel(c.cp.objective))}</span>
+        <span class="cn">${esc(c.cp.name)}</span>
+        <span class="cm">${ads.length} ${ads.length===1?'anuncio':'anuncios'} · ${moneyC(c.spend)} · resultado: ${esc(c.def.etiqueta.toLowerCase())}</span>
+      </button>
+      <div class="posts">${top.map((x,i)=>postCard(
+          i+1, color(c.b), '', null, x.a.name,
+          state.brand === 'all' ? c.b.name : '',
+          [[moneyC(x.spend),'invertido'],
+           [c.def.dedup ? compact(x.impressions) : compact(x.result), c.def.dedup ? 'impres.' : c.def.etiqueta.toLowerCase()],
+           [c.def.dedup ? money(x.spend/Math.max(x.impressions,1)*1000) : (x.result>=1 ? money(x.spend/x.result) : '—'),
+            c.def.dedup ? 'CPM' : 'costo']],
+          null, 'ad-' + x.a.id)).join('')}</div>`;
+    card.querySelector('.adshead').onclick = function(){
+      const ab = card.dataset.open === '1';
+      card.dataset.open = ab ? '0' : '1';
+      this.setAttribute('aria-expanded', String(!ab));
+    };
+    hostA.appendChild(card);
+  }
+  if(!hostA.children.length)
+    hostA.innerHTML = '<div class="card"><p class="empty" style="padding:4px 0">No hubo anuncios con entrega en este período.</p></div>';
+}
+
+/** Por qué este grupo mide lo que mide, en una línea. */
+function explicarGrupo(g){
+  const def = g.def;
+  const razones = Object.keys(g.razones).sort((a,b)=>g.razones[b]-g.razones[a]);
+  const base = razones.length && POR_QUE[razones[0]] ? POR_QUE[razones[0]] : '';
+  if(def.dedup){
+    const extra = g.camps.length > 1
+      ? ' El alcance de cada campaña es exacto; el total del bloque es la suma, así que una misma persona puede estar contada en dos campañas.'
+      : '';
+    return (base ? 'Se mide por alcance porque ' + base + '.' : 'Se mide por alcance.') +
+           ' El alcance son personas únicas, por eso el gráfico muestra impresiones.' + extra;
+  }
+  return base ? 'Se mide por ' + def.etiqueta.toLowerCase() + ' porque ' + base + '.'
+              : 'Se mide por ' + def.etiqueta.toLowerCase() + '.';
 }
 
 function render(){ if(!RAW) return; renderOrganico(); renderPaid(); }
