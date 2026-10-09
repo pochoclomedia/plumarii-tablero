@@ -933,7 +933,10 @@ function alcanceReal(rg, marcas){
   }
   return { v, parcial, medidos, dias, marcas: ms.length };
 }
-const rotuloAlcance = () => (unDia() || alcanceReal(range())) ? 'Alcance' : 'Alcance sumado';
+// El alcance son personas únicas y sólo lo puede deduplicar Meta. Si para el
+// período en pantalla todavía no está recalculado, NO se muestra la suma de los
+// días: es un número mucho más alto que parece el KPI y no lo es.
+const hayDedup = (rg) => unDia() || !!alcanceReal(rg || range());
 
 /** Alcance de los anuncios del período, pedido a Meta como rango. */
 function alcancePaid(rg, marcas){
@@ -1241,6 +1244,9 @@ function renderOrganico(){
   const host = document.getElementById('org-tiles'); host.innerHTML = '';
   const real = alcanceReal(r), realPrev = pr && alcanceReal(pr), realYoy = yr && alcanceReal(yr);
   const reachV = real ? real.v : reach;
+  // hay Instagram pero el alcance deduplicado del período no está: no sirve como base
+  const faltaDedup = hayAlcance() && !unDia() && !real;
+  const baseAlcance = hayAlcance() && !faltaDedup;
   const subAlcance = real
     ? (real.parcial
         ? n0(real.v)+' personas · '+real.medidos+' de '+real.dias+' días'
@@ -1249,24 +1255,28 @@ function renderOrganico(){
         ? n0(reach)+' personas' + (state.net==='all' ? ' · Instagram' : '')
         : 'suma de ' + diasDelPeriodo() + ' días, no personas únicas');
 
-  host.appendChild(hayAlcance()
-    ? tile({k:rotuloAlcance(), v:compact(reachV), now:reachV,
-            prev: pr && (realPrev ? realPrev.v : p('reach')),
-            yoy:  yr && (realYoy  ? realYoy.v  : yy('reach')),
-            sub: subAlcance,
-            spark:spk('reach'), col})
-    : tile({k:'Alcance', v:'—', spark:[], col,
+  host.appendChild(!hayAlcance()
+    ? tile({k:'Alcance', v:'—', spark:[], col,
             nocmp: soloFB ? 'Meta dio de baja la métrica' : 'sin cuenta conectada',
-            sub: soloFB ? 'Facebook ya no informa alcance' : 'sin Instagram conectado'}));
+            sub: soloFB ? 'Facebook ya no informa alcance' : 'sin Instagram conectado'})
+    : faltaDedup
+      ? tile({k:'Alcance', v:'—', spark:[], col,
+              nocmp: 'todavía no se recalculó este período',
+              sub: 'Meta lo entrega por período, no por día'})
+      : tile({k:'Alcance', v:compact(reachV), now:reachV,
+              prev: pr && (realPrev ? realPrev.v : p('reach')),
+              yoy:  yr && (realYoy  ? realYoy.v  : yy('reach')),
+              sub: subAlcance,
+              spark:spk('reach'), col}));
   host.appendChild(tile({k:'Visualizaciones', v:compact(views), now:views, prev:pr&&p('views'), yoy:yr&&yy('views'),
-    sub: hayAlcance() ? dec(views/Math.max(reachV,1),1)+' × '+rotuloAlcance().toLowerCase() : n0(views)+' reproducciones',
+    sub: baseAlcance ? dec(views/Math.max(reachV,1),1)+' × alcance' : n0(views)+' reproducciones',
     spark:spk('views'), col}));
   host.appendChild(tile({k:'Seguidores netos', v:(neto>=0?'+':'−')+n0(Math.abs(neto)), now:neto,
     prev:pr&&(p('follows')-p('unfollows')), yoy:yr&&(yy('follows')-yy('unfollows')), spark:spk('follows'), col,
     extra:`<div class="brk"><span class="g"><b>+${n0(m('follows'))}</b><em>ganados</em></span>
       <span class="p"><b>−${n0(m('unfollows'))}</b><em>perdidos</em></span></div>`}));
   host.appendChild(tile({k:'Interacciones', v:compact(inter), now:inter, prev:pr&&p('interactions'), yoy:yr&&yy('interactions'),
-    sub:pct(inter/Math.max(hayAlcance()?reachV:views,1)) + (hayAlcance()?(' del '+rotuloAlcance().toLowerCase()):' de las visualizaciones'),
+    sub:pct(inter/Math.max(baseAlcance?reachV:views,1)) + (baseAlcance?' del alcance':' de las visualizaciones'),
     spark:spk('interactions'), col}));
   host.appendChild(tile({k: soloFB ? 'Visitas a la página' : 'Visitas al perfil', v:compact(vis), now:vis,
     prev:pr&&p('profile_views'), yoy:yr&&yy('profile_views'),
@@ -1286,7 +1296,7 @@ function renderOrganico(){
   legend(document.getElementById('org-legend'), series);
 
   document.getElementById('org-bars-note').textContent =
-    'Suma del período. El número gris es la tasa sobre ' + (hayAlcance()?('el '+rotuloAlcance().toLowerCase()+'.'):'las visualizaciones.');
+    'Suma del período. El número gris es la tasa sobre ' + (baseAlcance?'el alcance.':'las visualizaciones.');
   barList(document.getElementById('org-bars'), B.map(b=>{
     // cada marca se mide contra su propia base: alcance si tiene Instagram, si no visualizaciones
     const conAlcance = state.net !== 'fb' && b.has.ig;
@@ -1324,9 +1334,11 @@ function renderOrganico(){
       <div class="nethead"><span class="netmark">${mark}</span><span class="netname">${nm}</span>
         <span class="netshare">${pct(share,0)} de las visualizaciones</span></div>
       <div class="netstats">
-        <div class="ns"><span class="k">${rotuloAlcance()}</span><span class="v">${esFB
+        <div class="ns"><span class="k">Alcance</span><span class="v">${esFB
           ? '<span style="color:var(--ink-3);font-weight:400">sin dato en la API</span>'
-          : compact(g('reach')) + ' ' + deltaHTML(g('reach'), pr&&gp('reach'))}</span></div>
+          : faltaDedup
+            ? '<span style="color:var(--ink-3);font-weight:400">sin recalcular</span>'
+            : compact(g('reach')) + ' ' + deltaHTML(g('reach'), pr&&gp('reach'))}</span></div>
         <div class="ns"><span class="k">Visualizaciones</span><span class="v">${compact(vw)} ${deltaHTML(vw, pr&&gp('views'))}</span></div>
         <div class="ns"><span class="k">Interacciones</span><span class="v">${compact(g('interactions'))} ${deltaHTML(g('interactions'), pr&&gp('interactions'))}</span></div>
         <div class="ns"><span class="k">${esFB?'Visitas a la página':'Visitas al perfil'}</span><span class="v">${compact(g('profile_views'))} ${deltaHTML(g('profile_views'), pr&&gp('profile_views'))}</span></div>
@@ -1353,8 +1365,8 @@ function renderOrganico(){
     tot.gan+=gan; tot.per+=per; tot.vis+=g('profile_views');
     rows += `<tr><td><div class="nm"><i class="dot" style="background:${color(b)}"></i>${esc(b.name)}</div></td>
       <td style="text-align:left;color:var(--ink-2)">${esFB?'Facebook':'Instagram'}</td>
-      <td>${esFB?'<span style="color:var(--ink-3)">—</span>':n0(rc)}</td><td>${n0(g('views'))}</td><td>${n0(iv)}</td>
-      <td>${esFB?'<span style="color:var(--ink-3)">—</span>':pct(iv/Math.max(rc,1))}</td>
+      <td>${(esFB||faltaDedup)?'<span style="color:var(--ink-3)">—</span>':n0(rc)}</td><td>${n0(g('views'))}</td><td>${n0(iv)}</td>
+      <td>${(esFB||faltaDedup)?'<span style="color:var(--ink-3)">—</span>':pct(iv/Math.max(rc,1))}</td>
       <td style="color:var(--good-ink)">+${n0(gan)}</td>
       <td style="color:var(--crit-ink)">−${n0(per)}</td>
       <td style="font-weight:600">${nt>=0?'+':'−'}${n0(Math.abs(nt))}</td>
@@ -1362,10 +1374,12 @@ function renderOrganico(){
   }
   const totNet = tot.gan - tot.per;
   document.getElementById('org-table').innerHTML =
-    `<thead><tr><th>Marca</th><th style="text-align:left">Red</th><th>${rotuloAlcance()}</th><th>Visualizaciones</th>
+    `<thead><tr><th>Marca</th><th style="text-align:left">Red</th><th>Alcance</th><th>Visualizaciones</th>
       <th>Interacciones</th><th>Tasa int.</th><th>Seg. ganados</th><th>Seg. perdidos</th><th>Seg. netos</th><th>Visitas al perfil</th></tr></thead>
-     <tbody>${rows}<tr class="tot"><td>Total</td><td></td><td>${n0(tot.reach)}</td><td>${n0(tot.views)}</td>
-      <td>${n0(tot.interactions)}</td><td>${pct(tot.interactions/Math.max(tot.reach,1))}</td>
+     <tbody>${rows}<tr class="tot"><td>Total</td><td></td>
+      <td>${faltaDedup?'<span style="color:var(--ink-3)">—</span>':n0(tot.reach)}</td><td>${n0(tot.views)}</td>
+      <td>${n0(tot.interactions)}</td>
+      <td>${faltaDedup?'<span style="color:var(--ink-3)">—</span>':pct(tot.interactions/Math.max(tot.reach,1))}</td>
       <td>+${n0(tot.gan)}</td><td>−${n0(tot.per)}</td>
       <td>${totNet>=0?'+':'−'}${n0(Math.abs(totNet))}</td><td>${n0(tot.vis)}</td></tr></tbody>`;
 
