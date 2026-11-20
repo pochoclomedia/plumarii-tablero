@@ -389,6 +389,35 @@ footer b{color:var(--ink-2); font-weight:500}
 .bootbox input[type=file]{position:absolute; width:1px; height:1px; opacity:0}
 .post .pt a{color:inherit; text-decoration:none}
 .post .pt a:hover{text-decoration:underline}
+
+/* ===== conclusiones del mes ===== */
+.concl{margin-top:10px}
+.concl-texto{font-size:13.5px; line-height:1.62; color:var(--ink); white-space:pre-wrap; margin:0}
+.concl-vacio{font-size:12.5px; color:var(--ink-3); font-style:italic; margin:0}
+.concl-sello{font-family:var(--mono); font-size:10px; color:var(--ink-3); letter-spacing:.04em; margin:10px 0 0}
+.concl-ta{
+  width:100%; box-sizing:border-box; font:inherit; font-size:13.5px; line-height:1.62;
+  color:var(--ink); background:var(--surface-2); border:1px solid var(--line);
+  border-radius:8px; padding:10px 11px; resize:vertical; min-height:130px;
+}
+.concl-ta:focus{outline:none; border-color:var(--line-strong)}
+.concl-acc{display:flex; align-items:center; gap:8px; margin-top:11px; flex-wrap:wrap}
+.concl-estado{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.04em}
+.concl-estado.mal{color:var(--crit-ink)}
+#modo-edicion{
+  display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 13px; margin-bottom:4px;
+}
+#modo-edicion .et{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ink-3);
+}
+#clave-input{
+  font:inherit; font-size:12.5px; color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:7px; padding:5px 10px; min-width:240px;
+}
+#clave-input:focus{outline:none; border-color:var(--line-strong)}
 </style>
 
 
@@ -446,6 +475,9 @@ footer b{color:var(--ink-2); font-weight:500}
 
 <div class="wrap">
 
+  <!-- la barra para entrar a escribir; oculta salvo con ?editar o clave cargada -->
+  <div id="modo-edicion" hidden></div>
+
   <!-- ============ ORGÁNICO ============ -->
   <section class="band">
     <div class="band-head">
@@ -493,6 +525,8 @@ footer b{color:var(--ink-2); font-weight:500}
       <p class="sec-note" id="top-note">—</p>
       <div class="posts" id="org-posts"></div>
     </div>
+
+    <div id="concl-organico"></div>
   </section>
 
   <!-- ============ PAID ============ -->
@@ -533,6 +567,8 @@ footer b{color:var(--ink-2); font-weight:500}
     </div>
     <p class="sec-note" id="ads-note" style="margin-top:-8px">—</p>
     <div id="paid-ads"></div>
+
+    <div id="concl-paid"></div>
   </section>
 
   <!-- ============ CÓMO SE ACTUALIZA ============ -->
@@ -1662,7 +1698,188 @@ function explicarGrupo(g){
               : 'Se mide por ' + def.etiqueta.toLowerCase() + '.';
 }
 
-function render(){ if(!RAW) return; renderOrganico(); renderPaid(); }
+/* =====================================================================
+   8. CONCLUSIONES DEL MES
+
+   El texto que escribe Santiago al pie de organico y de paid. Vive en su
+   propio archivo, conclusiones.json, por la misma razon que el alcance: la
+   carga diaria reescribe el data.json entero todas las mananas y se lo
+   llevaria puesto.
+
+   La clave de cada texto es marca + mes + seccion. Solo tiene sentido sobre
+   un mes: en "30 dias" el periodo se corre todos los dias, asi que manana el
+   mismo texto ya no hablaria del mismo recorte.
+
+   Para escribir hace falta una clave, que NO esta en esta pagina: se carga
+   una vez entrando con ?editar y queda en el navegador de quien escribe.
+   Sin clave el bloque es de solo lectura, que es lo que ve el cliente.
+   ===================================================================== */
+
+const APP_CONCLUSIONES = 'https://script.google.com/macros/s/AKfycbwqjalH01ObUqAD8jdmH7xGq3X1FvBej-1B_jR49qi5gOZWcdiAVzuDHI2T0vOEVcrr/exec';
+
+const SECCIONES_CONCL = [
+  { id:'organico', caja:'concl-organico', pie:'org\u00e1nico' },
+  { id:'paid',     caja:'concl-paid',     pie:'paid' },
+];
+
+let CONCL = null;
+let CLAVE = '';
+try{ CLAVE = localStorage.getItem('plumarii-clave') || ''; }catch(e){}
+
+fetch('conclusiones.json', {cache:'no-store'})
+  .then(r => r.ok ? r.json() : null)
+  .then(a => { CONCL = a; if(RAW) renderConclusiones(); })
+  .catch(() => { CONCL = null; });
+
+const modoEdicion = () => !!CLAVE || /[?&]editar\b/.test(location.search);
+const idConcl = s => state.brand + '|' + state.month + '|' + s;
+const quienConcl = () => state.brand === 'all' ? 'las 5 marcas' : byId[state.brand].name;
+
+function guardadoDe(seccion){
+  if(!CONCL || !CONCL.textos || state.kind !== 'month') return null;
+  return CONCL.textos[idConcl(seccion)] || null;
+}
+function selloConcl(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  return (+String(d.getDate())) + ' ' + MON3[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function renderConclusiones(){
+  pintarBarraClave();
+  SECCIONES_CONCL.forEach(sec => pintarConclusion(sec));
+}
+
+function pintarBarraClave(){
+  const barra = document.getElementById('modo-edicion');
+  if(!modoEdicion()){ barra.hidden = true; barra.innerHTML = ''; return; }
+  barra.hidden = false;
+
+  if(CLAVE){
+    barra.innerHTML =
+      '<span class="et">Modo edici\u00f3n</span>' +
+      '<span class="concl-estado">Pod\u00e9s escribir la conclusi\u00f3n del mes que tengas elegido.</span>' +
+      '<button class="pill" id="salir-edicion" style="margin-left:auto">Salir</button>';
+    document.getElementById('salir-edicion').onclick = () => {
+      CLAVE = '';
+      try{ localStorage.removeItem('plumarii-clave'); }catch(e){}
+      renderConclusiones();
+    };
+    return;
+  }
+
+  barra.innerHTML =
+    '<span class="et">Modo edici\u00f3n</span>' +
+    '<input id="clave-input" type="password" placeholder="Clave para escribir" autocomplete="off">' +
+    '<button class="pill" id="entrar-edicion">Entrar</button>' +
+    '<span class="concl-estado">Queda guardada en este navegador.</span>';
+  const meter = () => {
+    const v = document.getElementById('clave-input').value.trim();
+    if(!v) return;
+    CLAVE = v;
+    try{ localStorage.setItem('plumarii-clave', v); }catch(e){}
+    renderConclusiones();
+  };
+  document.getElementById('entrar-edicion').onclick = meter;
+  document.getElementById('clave-input').onkeydown = ev => { if(ev.key === 'Enter') meter(); };
+}
+
+function pintarConclusion(sec){
+  const caja = document.getElementById(sec.caja);
+  const esMes = state.kind === 'month';
+  const g = guardadoDe(sec.id);
+
+  // Fuera de un mes no hay conclusion que mostrar. Al cliente no le aparece
+  // nada; a quien puede escribir le explicamos por que.
+  if(!esMes){
+    if(!modoEdicion()){ caja.hidden = true; caja.innerHTML = ''; return; }
+    caja.hidden = false;
+    caja.innerHTML =
+      '<div class="card concl"><h3 class="sec">Conclusiones del mes</h3>' +
+      '<p class="sec-note">Las conclusiones se escriben sobre un mes. Eleg\u00ed uno en el ' +
+      'selector de per\u00edodo para escribir la de ' + sec.pie + '.</p></div>';
+    return;
+  }
+
+  // Mes elegido pero todavia sin texto: el cliente no ve una caja vacia.
+  if(!g && !modoEdicion()){ caja.hidden = true; caja.innerHTML = ''; return; }
+
+  caja.hidden = false;
+  caja.innerHTML =
+    '<div class="card concl">' +
+      '<h3 class="sec">Conclusiones del mes</h3>' +
+      '<p class="sec-note">' + periodTitle() + ' \u00b7 ' + quienConcl() + ' \u00b7 ' + sec.pie + '</p>' +
+      (g ? '<p class="concl-texto"></p><p class="concl-sello">\u00daltima edici\u00f3n: ' +
+             selloConcl(g.actualizado) + '</p>'
+         : '<p class="concl-vacio">Todav\u00eda no hay conclusi\u00f3n para este mes.</p>') +
+      (modoEdicion()
+         ? '<div class="concl-acc"><button class="pill" data-ed="1">' +
+           (g ? 'Editar' : 'Escribir conclusi\u00f3n') + '</button></div>'
+         : '') +
+    '</div>';
+
+  // El texto se escribe como texto, nunca como HTML.
+  if(g) caja.querySelector('.concl-texto').textContent = g.texto;
+
+  const btn = caja.querySelector('[data-ed]');
+  if(btn) btn.onclick = () => abrirEditor(sec, g);
+}
+
+function abrirEditor(sec, g){
+  const caja = document.getElementById(sec.caja);
+  caja.innerHTML =
+    '<div class="card concl">' +
+      '<h3 class="sec">Conclusiones del mes</h3>' +
+      '<p class="sec-note">' + periodTitle() + ' \u00b7 ' + quienConcl() + ' \u00b7 ' + sec.pie + '</p>' +
+      '<textarea class="concl-ta" placeholder="Qu\u00e9 pas\u00f3 este mes y por qu\u00e9."></textarea>' +
+      '<div class="concl-acc">' +
+        '<button class="pill" data-ok="1">Guardar</button>' +
+        '<button class="pill" data-no="1">Cancelar</button>' +
+        '<span class="concl-estado"></span>' +
+      '</div>' +
+    '</div>';
+
+  const ta = caja.querySelector('.concl-ta');
+  const estado = caja.querySelector('.concl-estado');
+  ta.value = g ? g.texto : '';
+  ta.focus();
+
+  caja.querySelector('[data-no]').onclick = () => pintarConclusion(sec);
+
+  caja.querySelector('[data-ok]').onclick = () => {
+    // Marca y mes se congelan ACA: si alguien cambia el filtro mientras se
+    // guarda, el texto tiene que ir igual al mes que estaba escribiendo.
+    const texto = ta.value.trim(), marca = state.brand, mes = state.month;
+    estado.className = 'concl-estado';
+    estado.textContent = 'Guardando\u2026';
+    caja.querySelectorAll('button').forEach(b => b.disabled = true);
+
+    fetch(APP_CONCLUSIONES, {
+      method: 'POST',
+      // text/plain a proposito: con application/json el navegador manda antes
+      // un preflight que Apps Script no contesta.
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ clave:CLAVE, marca:marca, mes:mes, seccion:sec.id, texto:texto }),
+    })
+      .then(r => r.json())
+      .then(res => {
+        if(!res.ok) throw new Error(res.error || 'No se pudo guardar.');
+        if(!CONCL) CONCL = { generado:'', textos:{} };
+        if(!CONCL.textos) CONCL.textos = {};
+        const id = marca + '|' + mes + '|' + sec.id;
+        if(texto) CONCL.textos[id] = { texto:texto, actualizado:res.actualizado };
+        else delete CONCL.textos[id];
+        pintarConclusion(sec);
+      })
+      .catch(e => {
+        estado.className = 'concl-estado mal';
+        estado.textContent = String(e.message || e);
+        caja.querySelectorAll('button').forEach(b => b.disabled = false);
+      });
+  };
+}
+
+function render(){ if(!RAW) return; renderOrganico(); renderPaid(); renderConclusiones(); }
 
 let rt;
 addEventListener('resize', ()=>{ clearTimeout(rt); rt = setTimeout(render, 160); });
